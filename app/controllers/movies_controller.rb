@@ -7,14 +7,29 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @sort_by = params[:sort_by]
+    # ratings for sorting
+    @all_ratings = Movie.get_all_ratings
+
+    # selected ratings
+    # THROWS AN EXCEPTION WHEN NO RATING IS CHECKED!!!
+    @selected_ratings = Array.new
+    if params[:ratings].present?
+      params[:ratings].each_key { |key| @selected_ratings << key }
+    else
+      @selected_ratings = @all_ratings
+    end
+
+    
+    
+    #sorting by attribute
+    @sort_by = (params[:sort_by].present? ? params[:sort_by] : [])
 
     if @sort_by == 'title'
-      @movies = Movie.order("title ASC").all
+      @movies = Movie.order("title ASC").where(:rating => @selected_ratings)
     elsif @sort_by == 'release'
-      @movies = Movie.order("release_date ASC").all
+      @movies = Movie.order("release_date ASC").where(:rating => @selected_ratings)
     else
-      @movies = Movie.all
+      @movies = Movie.where(:rating => @selected_ratings)
     end
     
   end
