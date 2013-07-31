@@ -7,25 +7,30 @@ class MoviesController < ApplicationController
   end
 
   def index
-    # ratings for sorting
+    # ratings for checkboxes in view
     @all_ratings = Movie.get_all_ratings
 
-    # selected ratings
-    # THROWS AN EXCEPTION WHEN NO RATING IS CHECKED!!!
-    @selected_ratings = Array.new
+    # selected values - used in views
+    @selected_values = Hash.new
+    
     if params[:ratings].present?
-      params[:ratings].each_key { |key| @selected_ratings << key }
-    else
-      if session[:ratings].nil?
-        @selected_ratings = @all_ratings
-      else
-        @selected_ratings = session[:ratings]
-      end
+      @selected_values[:ratings] = params[:ratings]
+      session[:saved_ratings] = @selected_values
+
+    elsif params[:ratings].blank? && session[:saved_ratings].present?
+      @selected_values = session[:saved_ratings]
+      redirect_to movies_path(@selected_values)
+
+    else params[:ratings].blank? && session[:saved_ratings].blank?
+      #convert array to hash
+      all_ratings = Hash.new
+      @all_ratings.each { |r| all_ratings[r] = 1 }
+
+      @selected_values[:ratings] = all_ratings
+      redirect_to movies_path(@selected_values)
     end
 
-    session[:ratings] = @selected_ratings
-
-    #sorting by attribute
+    # get the sorting attribute from params or from session
     if params[:sort_by].present?
       @sort_by = params[:sort_by]
       session[:sort_by] = params[:sort_by]
@@ -34,11 +39,11 @@ class MoviesController < ApplicationController
     end
 
     if @sort_by == 'title'
-      @movies = Movie.order("title ASC").where(:rating => @selected_ratings)
+      @movies = Movie.order("title ASC").where(:rating => @selected_values[:ratings].keys)
     elsif @sort_by == 'release'
-      @movies = Movie.order("release_date ASC").where(:rating => @selected_ratings)
+      @movies = Movie.order("release_date ASC").where(:rating => @selected_values[:ratings].keys)
     else
-      @movies = Movie.where(:rating => @selected_ratings)
+      @movies = Movie.where(:rating => @selected_values[:ratings].keys)
     end
     
   end
